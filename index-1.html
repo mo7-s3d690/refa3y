@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAFINOUS Score Calculator</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1b2430; --muted: #5b6676;
+    --line: #dde2e9; --accent: #1f6feb; --accent-text: #ffffff;
+    --pos: #b42318; --neg: #067647; --warn-bg: #fff4e5; --warn-line: #f2b36b;
+    --err-bg: #fdecec; --err-line: #e5a3a3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161c; --card: #1b212a; --text: #e8ecf1; --muted: #9aa5b4;
+      --line: #2e3744; --accent: #4c8dff; --accent-text: #0b1220;
+      --pos: #ff8a80; --neg: #5fd3a0; --warn-bg: #2b2112; --warn-line: #7a5a2a;
+      --err-bg: #2b1515; --err-line: #7a3a3a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 1.5rem; margin: 8px 0 4px; }
+  h2 { font-size: 1.05rem; margin: 0 0 12px; }
+  .sub { color: var(--muted); margin: 0 0 16px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 16px; margin-bottom: 14px;
+  }
+  .notice {
+    border: 1px solid var(--warn-line); background: var(--warn-bg);
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-size: .92rem;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  label, .lbl { display: block; font-weight: 600; font-size: .92rem; margin-bottom: 4px; }
+  .hint { color: var(--muted); font-weight: 400; font-size: .82rem; }
+  input[type=number], select {
+    width: 100%; padding: 10px; font-size: 1rem; color: var(--text);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .row { display: flex; gap: 8px; }
+  .row select { width: 110px; flex: none; }
+  .seg { display: flex; gap: 8px; flex-wrap: wrap; }
+  .seg label {
+    display: flex; align-items: center; gap: 6px; font-weight: 500;
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+    margin: 0; cursor: pointer; background: var(--bg);
+  }
+  .seg input { margin: 0; }
+  .full { grid-column: 1 / -1; }
+  .actions { display: flex; gap: 10px; margin-top: 14px; }
+  button {
+    font: inherit; font-weight: 600; padding: 11px 18px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--bg); color: var(--text);
+  }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .errors { border: 1px solid var(--err-line); background: var(--err-bg); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
+  .errors ul, .warnings ul { margin: 4px 0 0; padding-left: 20px; }
+  .warnings { border: 1px solid var(--warn-line); background: var(--warn-bg); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
+  .total { text-align: center; padding: 8px 0 14px; }
+  .total .num { font-size: 3.2rem; font-weight: 700; line-height: 1.1; }
+  .total .cap { color: var(--muted); font-size: .9rem; }
+  table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+  th, td { text-align: left; padding: 7px 4px; border-bottom: 1px solid var(--line); }
+  th:last-child, td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  td.pos { color: var(--pos); font-weight: 600; }
+  td.neg { color: var(--neg); font-weight: 600; }
+  tfoot td { border-bottom: 0; font-weight: 700; }
+  .small { font-size: .85rem; color: var(--muted); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>SAFINOUS Score Calculator</h1>
+  <p class="sub">Early saphenous vein graft (SVG) failure risk score after CABG.</p>
+
+  <div class="notice">
+    <strong>Research tool, not a medical device.</strong> It does not replace clinical judgment.
+    Everything is calculated in your browser; no patient data is sent or stored anywhere.
+  </div>
+
+  <form id="form" class="card" novalidate>
+    <h2>Patient data</h2>
+    <div class="grid">
+      <div>
+        <label for="age">Age (years) <span class="hint">30&ndash;89</span></label>
+        <input id="age" type="number" inputmode="numeric" step="1" min="0" max="120">
+      </div>
+      <div>
+        <span class="lbl">Sex</span>
+        <div class="seg">
+          <label><input type="radio" name="sex" value="male"> Male</label>
+          <label><input type="radio" name="sex" value="female"> Female</label>
+        </div>
+      </div>
+
+      <div>
+        <label for="creat">Serum creatinine <span class="hint">0.50 mg/dL or higher</span></label>
+        <div class="row">
+          <input id="creat" type="number" inputmode="decimal" step="0.01" min="0">
+          <select id="unit" aria-label="Creatinine unit">
+            <option value="mgdl">mg/dL</option>
+            <option value="umol">&micro;mol/L</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label for="nsvg">Number of SVGs</label>
+        <select id="nsvg">
+          <option value="">Select&hellip;</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3 or more</option>
+        </select>
+      </div>
+
+      <div>
+        <span class="lbl">Diabetes</span>
+        <div class="seg">
+          <label><input type="radio" name="diabetes" value="yes"> Yes</label>
+          <label><input type="radio" name="diabetes" value="no"> No</label>
+        </div>
+      </div>
+      <div>
+        <span class="lbl">Dyslipidemia</span>
+        <div class="seg">
+          <label><input type="radio" name="dyslipidemia" value="yes"> Yes</label>
+          <label><input type="radio" name="dyslipidemia" value="no"> No</label>
+        </div>
+      </div>
+      <div>
+        <span class="lbl">Active smoking</span>
+        <div class="seg">
+          <label><input type="radio" name="smoking" value="yes"> Yes</label>
+          <label><input type="radio" name="smoking" value="no"> No</label>
+        </div>
+      </div>
+      <div>
+        <span class="lbl">Endoscopic vein harvesting</span>
+        <div class="seg">
+          <label><input type="radio" name="evh" value="yes"> Yes</label>
+          <label><input type="radio" name="evh" value="no"> No (open)</label>
+        </div>
+      </div>
+      <div>
+        <span class="lbl">Complex graft</span>
+        <div class="seg">
+          <label><input type="radio" name="complex" value="yes"> Yes</label>
+          <label><input type="radio" name="complex" value="no"> No</label>
+        </div>
+      </div>
+
+      <div class="full">
+        <span class="lbl">SVG target vessels <span class="hint">select all that apply; leave empty if none of these</span></span>
+        <div class="seg">
+          <label><input type="checkbox" name="target" value="diagonal"> Diagonal</label>
+          <label><input type="checkbox" name="target" value="lcx_om"> LCx / OM</label>
+          <label><input type="checkbox" name="target" value="rca"> RCA</label>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="submit" class="primary">Calculate</button>
+      <button type="reset" id="reset">Reset</button>
+    </div>
+  </form>
+
+  <div id="errors" class="errors" hidden></div>
+  <div id="warnings" class="warnings" hidden></div>
+
+  <section id="result" class="card" hidden aria-live="polite">
+    <div class="total">
+      <div class="cap">SAFINOUS score</div>
+      <div class="num" id="total">0</div>
+    </div>
+    <h2>Contributing factors</h2>
+    <table>
+      <thead><tr><th>Factor</th><th>Points</th></tr></thead>
+      <tbody id="breakdown"></tbody>
+      <tfoot><tr><td>Total</td><td id="total2">0</td></tr></tfoot>
+    </table>
+    <p class="small" style="margin-top:12px">
+      Risk percentage is intentionally not shown: it is only displayed once the paper's
+      score-to-probability conversion has been reproduced and checked.
+    </p>
+  </section>
+
+  <p class="small">
+    Source: Antonopoulos et al., &ldquo;Development of a risk score for early saphenous vein graft failure:
+    An individual patient data meta-analysis&rdquo; (Table 3). Version <span id="ver"></span>.
+  </p>
+</main>
+
+<script>
+// <SAFINOUS-CORE>
+const SAFINOUS_VERSION = "1.0.0-draft";
+
+// Points transcribed from the project blueprint (paper Table 3).
+// MUST be verified against the original paper before clinical use.
+const POINTS = {
+  age: [ // [min, max, points]
+    [30, 39, -2], [40, 49, -1], [50, 59, 0], [60, 69, 1], [70, 79, 2], [80, 89, 3],
+  ],
+  male: -3,
+  dyslipidemia: 1,
+  diabetes: 3,
+  smoking: 3,
+  creatinine: [ // [min inclusive, max exclusive, points], mg/dL
+    [0.5, 1.0, -2], [1.0, 1.5, 0], [1.5, 2.0, 2], [2.0, 2.5, 4], [2.5, Infinity, 8],
+  ],
+  evh: -3,
+  complex: 4,
+  nsvg: { 1: 0, 2: 2, 3: 4 }, // 3 means 3 or more
+  target: { diagonal: 4, lcx_om: 4, rca: 3 },
+};
+
+function agePoints(age) {
+  for (const [lo, hi, p] of POINTS.age) if (age >= lo && age <= hi) return p;
+  return null;
+}
+function creatininePoints(c) {
+  for (const [lo, hi, p] of POINTS.creatinine) if (c >= lo && c < hi) return p;
+  return null;
+}
+
+// input: {age, sex:'male'|'female', dyslipidemia, diabetes, smoking, evh, complex (booleans),
+//         creatinine (mg/dL), nsvg (1,2,3+), targets: ['diagonal','lcx_om','rca']}
+function computeScore(input) {
+  const errors = [], warnings = [], breakdown = [];
+  const add = (label, pts) => breakdown.push({ label, points: pts });
+
+  const age = input.age;
+  if (!Number.isFinite(age) || !Number.isInteger(age)) errors.push("Enter age as a whole number of years.");
+  else if (agePoints(age) === null) errors.push("Age " + age + " is outside the score's range (30\u201389); the score is not defined.");
+  else add("Age " + age, agePoints(age));
+
+  if (input.sex === "male") add("Male sex", POINTS.male);
+  else if (input.sex === "female") add("Female sex", 0);
+  else errors.push("Select sex.");
+
+  const c = input.creatinine;
+  if (!Number.isFinite(c)) errors.push("Enter serum creatinine.");
+  else if (creatininePoints(c) === null) errors.push("Creatinine below 0.50 mg/dL is outside the score's range; the score is not defined.");
+  else add("Creatinine " + (Math.round(c * 100) / 100) + " mg/dL", creatininePoints(c));
+
+  const yn = [
+    ["diabetes", "Diabetes", POINTS.diabetes],
+    ["dyslipidemia", "Dyslipidemia", POINTS.dyslipidemia],
+    ["smoking", "Active smoking", POINTS.smoking],
+    ["evh", "Endoscopic vein harvesting", POINTS.evh],
+    ["complex", "Complex graft", POINTS.complex],
+  ];
+  for (const [key, label, pts] of yn) {
+    if (input[key] === true) add(label, pts);
+    else if (input[key] !== false) errors.push("Answer: " + label + ".");
+  }
+
+  if (![1, 2, 3].includes(input.nsvg)) errors.push("Select the number of SVGs.");
+  else add(input.nsvg === 3 ? "3 or more SVGs" : input.nsvg + " SVG" + (input.nsvg > 1 ? "s" : ""), POINTS.nsvg[input.nsvg]);
+
+  const names = { diagonal: "Graft to diagonal", lcx_om: "Graft to LCx/OM", rca: "Graft to RCA" };
+  for (const t of input.targets || []) if (names[t]) add(names[t], POINTS.target[t]);
+
+  if (errors.length) return { ok: false, errors, warnings, total: null, breakdown: [] };
+  const total = breakdown.reduce((s, b) => s + b.points, 0);
+  return { ok: true, errors, warnings, total, breakdown };
+}
+// </SAFINOUS-CORE>
+
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const form = $("form");
+  $("ver").textContent = SAFINOUS_VERSION;
+
+  const radio = (name) => {
+    const el = form.querySelector('input[name="' + name + '"]:checked');
+    return el ? el.value : null;
+  };
+  const yesno = (name) => { const v = radio(name); return v === null ? null : v === "yes"; };
+
+  function readInput() {
+    let c = parseFloat($("creat").value);
+    if (Number.isFinite(c) && $("unit").value === "umol") c = c / 88.4;
+    const nsvg = parseInt($("nsvg").value, 10);
+    return {
+      age: $("age").value === "" ? NaN : Number($("age").value),
+      sex: radio("sex"),
+      diabetes: yesno("diabetes"),
+      dyslipidemia: yesno("dyslipidemia"),
+      smoking: yesno("smoking"),
+      evh: yesno("evh"),
+      complex: yesno("complex"),
+      creatinine: c,
+      nsvg: Number.isFinite(nsvg) ? nsvg : null,
+      targets: Array.from(form.querySelectorAll('input[name="target"]:checked')).map((e) => e.value),
+    };
+  }
+
+  function list(el, items, title) {
+    el.hidden = items.length === 0;
+    el.innerHTML = "";
+    if (!items.length) return;
+    const b = document.createElement("strong"); b.textContent = title; el.appendChild(b);
+    const ul = document.createElement("ul");
+    for (const t of items) { const li = document.createElement("li"); li.textContent = t; ul.appendChild(li); }
+    el.appendChild(ul);
+  }
+
+  const fmt = (n) => (n > 0 ? "+" + n : String(n));
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    const r = computeScore(readInput());
+    list($("errors"), r.errors, "Please fix:");
+    list($("warnings"), r.warnings, "Note:");
+    $("result").hidden = !r.ok;
+    if (!r.ok) return;
+    $("total").textContent = fmt(r.total);
+    $("total2").textContent = fmt(r.total);
+    const tb = $("breakdown"); tb.innerHTML = "";
+    for (const b of r.breakdown) {
+      const tr = document.createElement("tr");
+      const td1 = document.createElement("td"); td1.textContent = b.label;
+      const td2 = document.createElement("td"); td2.textContent = fmt(b.points);
+      td2.className = b.points > 0 ? "pos" : b.points < 0 ? "neg" : "";
+      tr.appendChild(td1); tr.appendChild(td2); tb.appendChild(tr);
+    }
+    $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  $("reset").addEventListener("click", function () {
+    $("errors").hidden = true; $("warnings").hidden = true; $("result").hidden = true;
+  });
+
+  $("unit").addEventListener("change", function () {
+    $("creat").step = this.value === "umol" ? "1" : "0.01";
+    $("creat").value = "";
+  });
+})();
+</script>
+</body>
+</html>
